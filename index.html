@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🐾 WhiskerHub</title>
+    <style>
+        /* -------------------- RESET & GENEL -------------------- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0a0a0f;
+            padding: 20px;
+            /* Yıldız efekti için arka plan deseni */
+            background-image: 
+                radial-gradient(2px 2px at 20px 30px, #eee, transparent),
+                radial-gradient(2px 2px at 40px 70px, #fff, transparent),
+                radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+                radial-gradient(2px 2px at 160px 120px, #ddd, transparent),
+                radial-gradient(1px 1px at 200px 50px, #fff, transparent),
+                radial-gradient(1.5px 1.5px at 300px 80px, #eee, transparent),
+                radial-gradient(2px 2px at 400px 30px, #fff, transparent),
+                radial-gradient(1px 1px at 500px 100px, #ddd, transparent),
+                radial-gradient(1.5px 1.5px at 50px 200px, #fff, transparent),
+                radial-gradient(2px 2px at 150px 250px, #eee, transparent),
+                radial-gradient(1px 1px at 250px 300px, #fff, transparent),
+                radial-gradient(2px 2px at 350px 200px, #ddd, transparent),
+                radial-gradient(1px 1px at 450px 280px, #fff, transparent),
+                radial-gradient(1.5px 1.5px at 550px 150px, #eee, transparent),
+                radial-gradient(1px 1px at 650px 250px, #fff, transparent),
+                radial-gradient(2px 2px at 750px 180px, #ddd, transparent);
+            background-size: 800px 400px;
+            background-repeat: repeat;
+        }
+
+        /* -------------------- ANA KART -------------------- */
+        .hub-container {
+            max-width: 1300px;
+            width: 100%;
+            background: rgba(10, 10, 20, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 60px 60px 40px 40px;
+            padding: 40px 35px;
+            box-shadow: 0 25px 50px -10px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Işıltılı gradient çizgi (üstte) */
+        .hub-container::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: 20%;
+            width: 60%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #CFEFFF, #D8C7FF, #FFD1E8, transparent);
+            border-radius: 100%;
+            opacity: 0.6;
+        }
+
+        /* -------------------- BAŞLIK -------------------- */
+        .hub-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hub-header h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            background: linear-gradient(145deg, #CFEFFF, #D8C7FF, #FFD1E8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+            text-shadow: 0 0 40px rgba(207, 239, 255, 0.1);
+        }
+
+        .hub-header .sub {
+            font-size: 1.1rem;
+            color: #a090c0;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 6px 18px;
+            border-radius: 60px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            letter-spacing: 0.3px;
+        }
+
+        /* -------------------- PROJE KARTLARI GRİDİ -------------------- */
+        .project-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 24px;
+            margin-top: 10px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* -------------------- HER BİR KART -------------------- */
+        .project-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 32px;
+            padding: 20px 14px 18px;
+            text-align: center;
+            text-decoration: none;
+            color: #e8e0f0;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Kart hover efekti - gradient glow */
+        .project-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 34px;
+            background: linear-gradient(135deg, #CFEFFF, #D8C7FF, #FFD1E8, #D8C7FF, #CFEFFF);
+            background-size: 300% 300%;
+            opacity: 0;
+            z-index: -1;
+            transition: opacity 0.5s ease;
+        }
+
+        .project-card:hover::before {
+            opacity: 0.15;
+            animation: gradientMove 3s ease infinite;
+        }
+
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .project-card:hover {
+            transform: translateY(-6px) scale(1.02);
+            background: rgba(255, 255, 255, 0.06);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6);
+            border-color: rgba(207, 239, 255, 0.15);
+        }
+
+        /* Görsel alanı */
+        .card-image {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.02);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            transition: 0.2s;
+            position: relative;
+        }
+
+        /* Görsel kenarına gradient çizgi */
+        .card-image::after {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: 25px;
+            padding: 1px;
+            background: linear-gradient(135deg, #CFEFFF22, #D8C7FF22, #FFD1E822);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        .card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-top: 4px;
+            color: #f0eaff;
+            letter-spacing: -0.2px;
+            background: linear-gradient(135deg, #CFEFFF, #e0d0ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .card-desc {
+            font-size: 0.8rem;
+            color: #9080aa;
+            line-height: 1.3;
+            padding: 0 4px;
+            opacity: 0.7;
+        }
+
+        .card-emoji {
+            font-size: 1.6rem;
+            line-height: 1;
+            margin-top: 2px;
+            filter: drop-shadow(0 0 10px rgba(207, 239, 255, 0.1));
+        }
+
+        /* -------------------- FOOTER -------------------- */
+        .hub-footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: #6a5a8a;
+            border-top: 1px solid rgba(255, 255, 255, 0.03);
+            padding-top: 24px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hub-footer span {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 4px 14px;
+            border-radius: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        /* Gradient renk etiketleri */
+        .color-dots {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .color-dot:nth-child(1) { background: #CFEFFF; }
+        .color-dot:nth-child(2) { background: #D8C7FF; }
+        .color-dot:nth-child(3) { background: #FFD1E8; }
+
+        /* -------------------- RESPONSIVE -------------------- */
+        @media (max-width: 700px) {
+            .hub-container { padding: 24px 18px; }
+            .hub-header h1 { font-size: 2.2rem; }
+            .project-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+            .card-title { font-size: 1rem; }
+        }
+
+        @media (max-width: 450px) {
+            .project-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+            .hub-header h1 { font-size: 1.8rem; }
+            .hub-container { border-radius: 32px; padding: 18px 14px; }
+            .card-desc { font-size: 0.7rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hub-container">
+
+    <!-- HEADER -->
+    <div class="hub-header">
+        <h1>🐾 WhiskerHub</h1>
+        <span class="sub">✨ ProfessorCat Evreni</span>
+    </div>
+
+    <!-- PROJE KARTLARI -->
+    <div class="project-grid">
+
+        <!-- 1. WhiskerSearch -->
+        <a href="https://ayse-create.github.io/WhiskerSearch" target="_blank" class="project-card">
+            <div class="card-image">
+                <img src="1.png" alt="WhiskerSearch" />
+            </div>
+            <div class="card-emoji">🔍</div>
+            <div class="card-title">WhiskerSearch</div>
+            <div class="card-desc">Sahte tarayıcı & 4 aşamalı oyun</div>
+        </a>
+
+        <!-- 2. WhiskerShop -->
+        <a href="https://ayse-create.github.io/WhiskerShop" target="_blank" class="project-card">
+            <div class="card-image">
+                <img src="2.png" alt="WhiskerShop" />
+            </div>
+            <div class="card-emoji">🛍️</div>
+            <div class="card-title">WhiskerShop</div>
+            <div class="card-desc">40 ürün · kargo oyunu · kedi parası</div>
+        </a>
+
+        <!-- 3. WhiskerCalc -->
+        <a href="https://ayse-create.github.io/WhiskerCalc" target="_blank" class="project-card">
+            <div class="card-image">
+                <img src="3.png" alt="WhiskerCalc" />
+            </div>
+            <div class="card-emoji">🐱</div>
+            <div class="card-title">WhiskerCalc</div>
+            <div class="card-desc">Hesap makinesi + kedi yakalama</div>
+        </a>
+
+        <!-- 4. theLongestCat -->
+        <a href="https://ayse-create.github.io/WhiskerSearch/theLongestCat" target="_blank" class="project-card">
+            <div class="card-image">
+                <img src="4.png" alt="theLongestCat" />
+            </div>
+            <div class="card-emoji">🌈</div>
+            <div class="card-title">theLongestCat</div>
+            <div class="card-desc">Sonsuza uzayan kedi · WOW!</div>
+        </a>
+
+        <!-- 5. WhiskerTerminal -->
+        <a href="https://ayse-create.github.io/WhiskerSearch/terminal" target="_blank" class="project-card">
+            <div class="card-image">
+                <img src="5.png" alt="WhiskerTerminal" />
+            </div>
+            <div class="card-emoji">⌨️</div>
+            <div class="card-title">WhiskerTerminal</div>
+            <div class="card-desc">Sahte terminal · about, clear, TR, ENG</div>
+        </a>
+
+        <!-- 6. Cat-Desktop -->
+        <a href="https://ayse-create.github.io/WhiskerSearch/Cat-Desktop" target="_blank" class="project-card">
+            <div class="card-image">
+                <img src="6.png" alt="Cat-Desktop" />
+            </div>
+            <div class="card-emoji">🖥️</div>
+            <div class="card-title">Cat‑Desktop</div>
+            <div class="card-desc">Kedi masaüstü ve Dock</div>
+        </a>
+
+        <!-- 7. Mesajlar -->
+        <a href="https://ayse-create.github.io/WhiskerSearch/Cat-Desktop/mesajlar" target="_blank" class="project-card">
+            <div class="card-image">
+                <img src="7.png" alt="Mesajlar" />
+            </div>
+            <div class="card-emoji">💬</div>
+            <div class="card-title">Mesajlar</div>
+            <div class="card-desc">Kedi mesajlaşma</div>
+        </a>
+
+        <!-- 8. Kişiler -->
+        <a href="https://ayse-create.github.io/WhiskerSearch/Cat-Desktop/kisiler" target="_blank" class="project-card">
+            <div class="card-image">
+                <img src="8.png" alt="Kişiler" />
+            </div>
+            <div class="card-emoji">🐾</div>
+            <div class="card-title">Kişiler</div>
+            <div class="card-desc">Pamuk, Tarçın, Badem...</div>
+        </a>
+
+        <!-- 9. Mail -->
+        <a href="https://ayse-create.github.io/WhiskerSearch/Cat-Desktop/mail" target="_blank" class="project-card">
+            <div class="card-image">
+                <img src="9.png" alt="Mail" />
+            </div>
+            <div class="card-emoji">📧</div>
+            <div class="card-title">Mail</div>
+            <div class="card-desc">Kedi posta kutusu</div>
+        </a>
+
+        <!-- 10. Takvim -->
+        <a href="https://ayse-create.github.io/WhiskerSearch/Cat-Desktop/takvim" target="_blank" class="project-card">
+            <div class="card-image">
+                <img src="10.png" alt="Takvim" />
+            </div>
+            <div class="card-emoji">📅</div>
+            <div class="card-title">Takvim</div>
+            <div class="card-desc">Etkinlik takvimi</div>
+        </a>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="hub-footer">
+        <span>🐱 ProfessorCat evreni</span>
+        <span>⚡ Tüm projeler kurgusaldır</span>
+        <span class="color-dots">
+            <span class="color-dot"></span>
+            <span class="color-dot"></span>
+            <span class="color-dot"></span>
+        </span>
+        <span>#CFEFFF #D8C7FF #FFD1E8</span>
+    </div>
+
+</div>
+
+</body>
+</html>
