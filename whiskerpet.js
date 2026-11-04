@@ -1,10 +1,8 @@
 /* ==========================================================
-   WhiskerPet v2 – WhiskerHub kedisi
-   - Normal mod: pürüzsüz (vektör) kedi, yumak, mama kabı ve sahne
-   - Piksel modu (header'daki "Piksel" butonu): piksel art sprite'lar,
-     kartlar ve emojiler de pikselleştirilir
+   WhiskerPet v1 – WhiskerHub piksel art kedisi
+   - Kütüphane yok, sprite'lar kodla (piksel ızgarası) çizilir
    - Tek bir durum makinesi: idle | walking | sleeping | playing | eating | reacting
-   - Kütüphane yok, her şey kodla çizilir
+   - Mantıksal çözünürlük küçük canvas, CSS ile tam sayı katıyla büyütülür
    ========================================================== */
 (() => {
     'use strict';
@@ -18,11 +16,8 @@
     const yarnSrc  = document.getElementById('wpYarnSrc');
     const yarnIcon = document.getElementById('wpYarnIcon');
     const bowlIcon = document.getElementById('wpBowlIcon');
-    const pixelBtn = document.getElementById('pixelToggle');
-    const pixelTxt = document.getElementById('pixelText');
 
     /* ---------------------------------------------------- yardımcılar */
-    const TAU   = Math.PI * 2;
     const rand  = (a, b) => a + Math.random() * (b - a);
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
     const rnd   = Math.round;
@@ -38,7 +33,7 @@
 
     /* ---------------------------------------------------- renkler */
     const C = {
-        k: '#3b2f4f',   // piksel dış çizgi
+        k: '#3b2f4f',   // dış çizgi
         b: '#f2b880',   // gövde
         d: '#d98f4e',   // çizgiler / uzak bacaklar
         w: '#fff4e6',   // beyaz (patiler, karın)
@@ -52,27 +47,22 @@
         kib: '#a8643a',
         kibL: '#c98652',
         heart: '#ff6b9d',
-        bang: '#ff5c8a',
-        soft: '#a3673a',   // pürüzsüz mod dış çizgi
-        far: '#e2a672'     // pürüzsüz mod uzak bacak
+        bang: '#ff5c8a'
     };
 
     const THEMES = {
-        light: { ground: '#d8c7ff', ground2: '#c7b2fa', line: '#a98cf0', dots: '#c3a9f6', tuft: '#9fdcb0', z: '#7a55d8', shadow: 0.18 },
-        dark:  { ground: '#17122e', ground2: '#0e0a20', line: '#3d3166', dots: '#221a42', tuft: '#2e6b57', z: '#d8c7ff', shadow: 0.38 }
+        light: { ground: '#d8c7ff', line: '#a98cf0', dots: '#c3a9f6', tuft: '#9fdcb0', z: '#7a55d8', shadow: 0.18 },
+        dark:  { ground: '#17122e', line: '#3d3166', dots: '#221a42', tuft: '#2e6b57', z: '#d8c7ff', shadow: 0.38 }
     };
     let isDark = false;
     let theme = THEMES.light;
-    let pixelMode = document.body.classList.contains('pixel-mode');
 
     function readTheme() {
         isDark = document.body.classList.contains('dark-mode');
         theme = isDark ? THEMES.dark : THEMES.light;
     }
 
-    /* ==========================================================
-       PİKSEL ÇİZİM
-       ========================================================== */
+    /* ---------------------------------------------------- sprite çizici */
     function drawRows(g, rows, x, y, map) {
         for (let r = 0; r < rows.length; r++) {
             for (let c = 0; c < rows[r].length; c++) {
@@ -89,7 +79,8 @@
     const HEART = ['.kk.kk.', 'kppkppk', 'kpppppk', '.kpppk.', '..kpk..', '...k...'];
     const ZGLYPH = ['###', '..#', '.#.', '#..', '###'];
 
-    function drawYarnP(g, x, y, rot) {
+    // Yumak: dönüş açısına göre kayan açık renk iplik çizgileri
+    function drawYarn(g, x, y, rot) {
         drawRows(g, YARN, x, y, { k: C.k, y: C.yarn });
         const cs = Math.cos(rot), sn = Math.sin(rot);
         g.fillStyle = C.yarnL;
@@ -104,7 +95,8 @@
         }
     }
 
-    function drawBowlP(g, x, y, food) {
+    // Mama kabı: food 0..1 (kabarık mama yığını)
+    function drawBowl(g, x, y, food) {
         drawRows(g, BOWL, x, y, { k: C.k, l: C.bowlL, b: C.bowl, p: C.p });
         const lvl = Math.ceil(food * 3 - 1e-6);
         const kib = (dx, dy) => {
@@ -119,537 +111,9 @@
         }
     }
 
-    // ---- piksel kedi pozları (şekil listeleri)
-    function head(hx, hy, eyes, mouth) {
-        const sh = [[hx, hy, 8, 7, C.b], [hx, hy - 2, 2, 2, C.b], [hx + 6, hy - 2, 2, 2, C.b]];
-        const dt = [
-            [hx + 1, hy - 1, 1, 1, C.p], [hx + 6, hy - 1, 1, 1, C.p],
-            [hx + 3, hy, 1, 2, C.d], [hx + 5, hy, 1, 2, C.d]
-        ];
-        if (eyes === 'open') {
-            dt.push([hx + 3, hy + 2, 1, 2, C.e], [hx + 6, hy + 2, 1, 2, C.e]);
-        } else if (eyes === 'closed') {
-            dt.push([hx + 3, hy + 3, 2, 1, C.e], [hx + 6, hy + 3, 2, 1, C.e]);
-        } else { // mutlu ^ ^
-            dt.push([hx + 1, hy + 3, 1, 1, C.e], [hx + 2, hy + 2, 1, 1, C.e], [hx + 3, hy + 3, 1, 1, C.e],
-                    [hx + 5, hy + 3, 1, 1, C.e], [hx + 6, hy + 2, 1, 1, C.e], [hx + 7, hy + 3, 1, 1, C.e]);
-        }
-        dt.push([hx + 5, hy + 4, 3, 2, C.w], [hx + 7, hy + 4, 1, 1, C.p]);
-        if (mouth) dt.push([hx + 5, hy + 6, 3, 1, C.e]);
-        dt.push([hx + 8, hy + 4, 2, 1, C.wh], [hx + 8, hy + 6, 2, 1, C.wh]); // bıyıklar
-        return { sh, dt };
-    }
-
-    const LEGS = [
-        { x: -7, o: 0.5, far: 1 }, { x: -4, o: 0, far: 0 },
-        { x: 1,  o: 0,   far: 1 }, { x: 3,  o: 0.5, far: 0 }
-    ];
-
-    function legs(sh, dt, f, mode, skip) {
-        for (let i = 0; i < 4; i++) {
-            if (i === skip) continue;
-            const L = LEGS[i];
-            let dx = 0, lift = 0;
-            if (mode === 'walk') {
-                const p = ((f / 4) + L.o) % 1;
-                if (p < 0.5) dx = rnd(1 - 4 * p);
-                else { dx = rnd(-1 + 4 * (p - 0.5)); lift = p < 0.7 ? 1 : 2; }
-            } else if (mode === 'air') {
-                lift = 1;
-            }
-            const h = Math.max(1, 3 - lift);
-            sh.push([L.x + dx, -3, 2, h, L.far ? C.d : C.b]);
-            dt.push([L.x + dx, -3 + h - 1, 2, 1, C.w]);
-        }
-    }
-
-    function body(sh, dt) {
-        sh.push([-8, -9, 13, 6, C.b]);
-        dt.push([-7, -4, 11, 1, C.w], [-6, -9, 1, 2, C.d], [-3, -9, 1, 2, C.d], [0, -9, 1, 2, C.d]);
-    }
-
-    function tailUp(sh, dt, tw) {
-        sh.push([-11 + tw, -13, 2, 6, C.b], [-10, -8, 3, 2, C.b]);
-        dt.push([-11 + tw, -13, 2, 2, C.d]);
-    }
-
-    function merge(sh, dt, h) { sh.push(...h.sh); dt.push(...h.dt); }
-
-    function poseWalk(f, mode, eyes, tw) {
-        const sh = [], dt = [];
-        tailUp(sh, dt, tw);
-        legs(sh, dt, f, mode);
-        body(sh, dt);
-        merge(sh, dt, head(3, -13, eyes, false));
-        return { sh, dt };
-    }
-
-    function poseSit(sw, eyes) {
-        const sh = [], dt = [];
-        sh.push([-12, -2, 5, 2, C.b], [-13, -5 - sw, 2, 4 + sw, C.b]);
-        dt.push([-13, -5 - sw, 2, 1, C.d]);
-        sh.push([-8, -4, 4, 4, C.b], [-6, -8, 9, 8, C.b], [1, -5, 2, 5, C.b]);
-        dt.push([-5, -8, 1, 2, C.d], [-2, -8, 1, 2, C.d], [-7, -4, 1, 2, C.d], [1, -1, 2, 1, C.w], [2, -7, 1, 3, C.w]);
-        merge(sh, dt, head(-1, -14, eyes, false));
-        return { sh, dt };
-    }
-
-    function poseSleep(br) {
-        const sh = [], dt = [];
-        sh.push([-11, -4, 3, 4, C.b], [-9, -6, 18, 6, C.b], [-7, -7, 14, 1, C.b]);
-        if (br) sh.push([-5, -8, 10, 1, C.b]);
-        dt.push([-6, -7, 1, 2, C.d], [-2, -7, 1, 2, C.d], [2, -7, 1, 2, C.d]);
-        merge(sh, dt, head(4, -9, 'closed', false));
-        sh.push([8, -2, 5, 2, C.w]);
-        return { sh, dt };
-    }
-
-    function poseEat(hy, mouth, tw) {
-        const sh = [], dt = [];
-        tailUp(sh, dt, tw);
-        legs(sh, dt, 0, 'stand');
-        body(sh, dt);
-        sh.push([4, -9, 4, 6, C.b]);
-        merge(sh, dt, head(6, hy, 'happy', mouth));
-        return { sh, dt };
-    }
-
-    function poseSwat(t, tw) {
-        const sh = [], dt = [];
-        tailUp(sh, dt, tw);
-        legs(sh, dt, 0, 'stand', 3);
-        body(sh, dt);
-        if (t >= 0.18 && t < 0.34) {
-            sh.push([4, -6, 7, 2, C.b]);
-            dt.push([9, -6, 2, 2, C.w]);
-        } else {
-            sh.push([3, -7, 2, 4, C.b]);
-            dt.push([3, -7, 2, 1, C.w]);
-        }
-        merge(sh, dt, head(3, -12, 'open', false));
-        return { sh, dt };
-    }
-
-    function poseFromDesc(d) {
-        switch (d.k) {
-            case 'walk':  return poseWalk(d.f, d.mode, d.eyes, d.tw);
-            case 'sit':   return poseSit(d.sw, d.eyes);
-            case 'sleep': return poseSleep(d.br);
-            case 'eat':   return poseEat(d.hy, d.mouth, d.tw);
-            case 'swat':  return poseSwat(d.t, d.tw);
-        }
-        return poseSit(0, 'open');
-    }
-
-    function drawCatP(g, d) {
-        const p = poseFromDesc(d);
-        g.fillStyle = C.k;
-        for (const [x, y, w, h] of p.sh) g.fillRect(x - 1, y - 1, w + 2, h + 2);
-        for (const [x, y, w, h, c] of p.sh) { g.fillStyle = c; g.fillRect(x, y, w, h); }
-        for (const [x, y, w, h, c] of p.dt) { g.fillStyle = c; g.fillRect(x, y, w, h); }
-    }
-
-    function buildBackgroundP(g) {
-        g.fillStyle = theme.ground;
-        g.fillRect(0, GY, W, H - GY);
-        g.fillStyle = theme.line;
-        g.fillRect(0, GY, W, 1);
-
-        g.fillStyle = theme.dots;
-        const gh = H - GY - 2;
-        for (let x = 0; x < W; x++) {
-            const r = hash(x + 17);
-            if (r % 6 === 0 && gh > 0) g.fillRect(x, GY + 2 + ((r >>> 4) % gh), 1, 1);
-        }
-
-        g.fillStyle = theme.tuft;
-        for (let x = 2; x < W - 3; x++) {
-            if (hash(x * 3 + 5) % 19 === 0) {
-                g.fillRect(x, GY - 2, 1, 2);
-                g.fillRect(x + 2, GY - 3, 1, 3);
-                g.fillRect(x + 1, GY - 1, 1, 1);
-            }
-        }
-
-        const skyH = GY - 20;
-        stars = [];
-        if (isDark) {
-            for (let i = 0; i < Math.max(8, W / 10); i++) {
-                const x = hash(i * 7 + 1) % W;
-                const y = 2 + (hash(i * 13 + 3) % Math.max(1, skyH));
-                stars.push({ x, y, tw: i % 4 === 0, i });
-                if (i % 4 !== 0) {
-                    g.fillStyle = (i % 3 === 0) ? '#ffffff' : '#bfb3e0';
-                    g.fillRect(x, y, 1, 1);
-                }
-            }
-            const mx = rnd(W * 0.38), my = 12;
-            g.fillStyle = '#fff2c2';
-            for (let dy = -5; dy <= 5; dy++)
-                for (let dx = -5; dx <= 5; dx++)
-                    if (dx * dx + dy * dy <= 25) g.fillRect(mx + dx, my + dy, 1, 1);
-            for (let dy = -5; dy <= 5; dy++)
-                for (let dx = -5; dx <= 5; dx++)
-                    if ((dx - 3) * (dx - 3) + (dy + 2) * (dy + 2) <= 20) g.clearRect(mx + dx, my + dy, 1, 1);
-        } else {
-            const sx = rnd(W * 0.38), sy = 12;
-            for (let dy = -4; dy <= 4; dy++)
-                for (let dx = -4; dx <= 4; dx++) {
-                    const d = dx * dx + dy * dy;
-                    if (d <= 16) { g.fillStyle = d > 9 ? '#ffd27a' : '#ffe9a8'; g.fillRect(sx + dx, sy + dy, 1, 1); }
-                }
-        }
-    }
-
-    function drawCloudP(x, y) {
-        ctx.fillStyle = 'rgba(255,255,255,0.85)';
-        ctx.fillRect(x + 3, y, 3, 1);
-        ctx.fillRect(x + 2, y + 1, 6, 1);
-        ctx.fillRect(x, y + 2, 11, 1);
-        ctx.fillRect(x + 1, y + 3, 9, 1);
-    }
-
-    /* ==========================================================
-       PÜRÜZSÜZ (VEKTÖR) ÇİZİM  – aynı mantıksal koordinatlar
-       ========================================================== */
-    function ell(g, x, y, rx, ry, fill, stroke, lw) {
-        g.beginPath();
-        g.ellipse(x, y, rx, ry, 0, 0, TAU);
-        if (fill)   { g.fillStyle = fill; g.fill(); }
-        if (stroke) { g.strokeStyle = stroke; g.lineWidth = lw || 0.45; g.stroke(); }
-    }
-
-    function rrect(g, x, y, w, h, r, fill, stroke, lw) {
-        r = Math.min(r, w / 2, h / 2);
-        g.beginPath();
-        g.moveTo(x + r, y);
-        g.arcTo(x + w, y, x + w, y + h, r);
-        g.arcTo(x + w, y + h, x, y + h, r);
-        g.arcTo(x, y + h, x, y, r);
-        g.arcTo(x, y, x + w, y, r);
-        g.closePath();
-        if (fill)   { g.fillStyle = fill; g.fill(); }
-        if (stroke) { g.strokeStyle = stroke; g.lineWidth = lw || 0.45; g.stroke(); }
-    }
-
-    // Kalın çizgi (kuyruk, boyun, pati): önce dış çizgi, sonra dolgu
-    function thick(g, pathFn, w, fill) {
-        g.lineCap = 'round';
-        g.lineJoin = 'round';
-        pathFn(); g.strokeStyle = C.soft; g.lineWidth = w + 0.8; g.stroke();
-        pathFn(); g.strokeStyle = fill;   g.lineWidth = w;       g.stroke();
-    }
-
-    function headS(g, hx, hy, eyes, mouth) {
-        const cx = hx + 4.2, cy = hy + 3.6;
-        g.lineJoin = 'round';
-        for (const s of [-1, 1]) {                     // kulaklar
-            g.beginPath();
-            g.moveTo(cx + s * 4.3, cy - 0.6);
-            g.lineTo(cx + s * 3.1, hy - 2.7);
-            g.lineTo(cx + s * 1.1, cy - 3.3);
-            g.closePath();
-            g.fillStyle = C.b; g.fill();
-            g.strokeStyle = C.soft; g.lineWidth = 0.45; g.stroke();
-            g.beginPath();
-            g.moveTo(cx + s * 3.5, cy - 1.7);
-            g.lineTo(cx + s * 3.0, hy - 1.2);
-            g.lineTo(cx + s * 1.9, cy - 2.9);
-            g.closePath();
-            g.fillStyle = C.p; g.fill();
-        }
-        ell(g, cx, cy, 4.5, 4.0, C.b, C.soft, 0.45);   // kafa
-        g.strokeStyle = C.d; g.lineWidth = 0.5; g.lineCap = 'round';
-        for (const dx of [-1.3, 0, 1.3]) {             // alın çizgileri
-            g.beginPath(); g.moveTo(cx + dx, hy - 0.1); g.lineTo(cx + dx * 0.85, hy + 1.3); g.stroke();
-        }
-        ell(g, cx + 2.3, cy + 1.5, 2.1, 1.5, C.w);     // burun bölgesi
-        g.beginPath();                                  // burun
-        g.moveTo(cx + 3.5, cy + 0.5); g.lineTo(cx + 4.7, cy + 0.5); g.lineTo(cx + 4.1, cy + 1.2); g.closePath();
-        g.fillStyle = '#ff7fb2'; g.fill();
-        if (mouth) {
-            ell(g, cx + 3.5, cy + 2.4, 0.9, 0.7, C.e);
-        } else {
-            g.beginPath();
-            g.moveTo(cx + 4.1, cy + 1.2); g.lineTo(cx + 4.1, cy + 1.8);
-            g.quadraticCurveTo(cx + 3.7, cy + 2.4, cx + 3.1, cy + 2.1);
-            g.strokeStyle = C.wh; g.lineWidth = 0.25; g.stroke();
-        }
-        for (const ex of [cx - 0.9, cx + 2.0]) {       // gözler
-            if (eyes === 'open') {
-                ell(g, ex, cy - 0.6, 0.65, 0.95, C.e);
-                ell(g, ex + 0.2, cy - 0.95, 0.22, 0.22, '#fff');
-            } else {
-                g.beginPath();
-                if (eyes === 'closed') g.arc(ex, cy - 0.7, 0.8, 0.15 * Math.PI, 0.85 * Math.PI);
-                else g.arc(ex, cy - 0.1, 0.8, 1.15 * Math.PI, 1.85 * Math.PI);
-                g.strokeStyle = C.e; g.lineWidth = 0.45; g.lineCap = 'round'; g.stroke();
-            }
-        }
-        g.globalAlpha = 0.8;                            // bıyıklar
-        g.strokeStyle = C.wh; g.lineWidth = 0.22;
-        for (const [dy1, dy2] of [[0.9, -0.1], [1.4, 1.3], [1.9, 2.6]]) {
-            g.beginPath(); g.moveTo(cx + 3.3, cy + dy1); g.lineTo(cx + 7.4, cy + dy2); g.stroke();
-        }
-        g.globalAlpha = 1;
-    }
-
-    function legsS(g, ph, mode, skip) {
-        for (const far of [true, false]) {
-            for (let i = 0; i < 4; i++) {
-                const L = LEGS[i];
-                if (i === skip || !!L.far !== far) continue;
-                let dx = 0, lift = 0;
-                if (mode === 'walk') {
-                    const p = (((ph + L.o) % 1) + 1) % 1;
-                    if (p < 0.5) dx = 1.5 - 6 * p;
-                    else { dx = -1.5 + 6 * (p - 0.5); lift = 2.4 * Math.sin(Math.PI * (p - 0.5) / 0.5); }
-                } else if (mode === 'air') {
-                    lift = 1.4;
-                    dx = L.far ? -0.5 : 0.5;
-                }
-                const cx = L.x + 1 + dx, top = -4.6, bot = -lift;
-                rrect(g, cx - 1.15, top, 2.3, Math.max(1.4, bot - top), 1.1, far ? C.far : C.b, C.soft, 0.4);
-                ell(g, cx + 0.2, bot - 0.7, 1.4, 0.8, C.w);
-            }
-        }
-    }
-
-    function bodyS(g) {
-        ell(g, -1.5, -6.4, 7.2, 3.4, C.b, C.soft, 0.45);
-        ell(g, -1.5, -4.6, 5.4, 1.15, 'rgba(255,244,230,0.95)');
-        g.strokeStyle = C.d; g.lineWidth = 0.8; g.lineCap = 'round';
-        for (const x of [-5.5, -2.5, 0.5]) {
-            g.beginPath(); g.moveTo(x, -9.5); g.lineTo(x + 0.5, -7.8); g.stroke();
-        }
-    }
-
-    function tailUpS(g, sway) {
-        const tx = -11 + sway * 0.6;
-        thick(g, () => {
-            g.beginPath(); g.moveTo(-8, -7.4); g.bezierCurveTo(-11.6, -7.2, -12.4, -11, tx, -14.4);
-        }, 2.1, C.b);
-        ell(g, tx, -14.2, 1.05, 1.05, C.d);
-    }
-
-    function swatArmS(g, t) {
-        const x1 = 3.6, y1 = -5.2;
-        let x2, y2;
-        if (t >= 0.18 && t < 0.34) { x2 = 10; y2 = -5.4; } else { x2 = 4.6; y2 = -8.4; }
-        thick(g, () => { g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); }, 2.2, C.b);
-        ell(g, x2, y2, 1.35, 1.2, C.w, C.soft, 0.4);
-    }
-
-    function drawCatS(g, d) {
-        const a = d.a;
-        switch (d.k) {
-            case 'walk':
-            case 'eat':
-            case 'swat': {
-                const mode = d.k === 'walk' ? d.mode : 'stand';
-                const bob = (d.k === 'walk' && d.mode === 'walk') ? Math.abs(Math.sin(d.ph * TAU)) * 0.5 : 0;
-                const sway = Math.sin(a * (d.k === 'walk' ? 5 : 8));
-                legsS(g, d.ph, mode, d.k === 'swat' ? 3 : -1);
-                g.save();
-                g.translate(0, -bob);
-                tailUpS(g, sway);
-                bodyS(g);
-                if (d.k === 'swat') swatArmS(g, d.t);
-                if (d.k === 'eat') {
-                    thick(g, () => { g.beginPath(); g.moveTo(3, -8); g.lineTo(8.5, d.hys + 4); }, 4.6, C.b);
-                    headS(g, 6, d.hys, 'happy', d.mouth);
-                } else if (d.k === 'swat') {
-                    headS(g, 3, -12, 'open', false);
-                } else {
-                    headS(g, 3, -13, d.eyes, false);
-                }
-                g.restore();
-                break;
-            }
-            case 'sit': {
-                const sw = (Math.sin(a * 2) + 1) / 2;
-                thick(g, () => {
-                    g.beginPath(); g.moveTo(-7.5, -1.6);
-                    g.bezierCurveTo(-12, -0.6, -14, -3.5, -13.2, -6.2 - sw * 1.4);
-                }, 2.1, C.b);
-                ell(g, -5.2, -3, 3.9, 3, C.b, C.soft, 0.45);
-                ell(g, -2.6, -5, 4.7, 5, C.b, C.soft, 0.45);
-                ell(g, 1.3, -5.2, 1.3, 2.6, C.w);
-                g.strokeStyle = C.d; g.lineWidth = 0.8; g.lineCap = 'round';
-                for (const x of [-5, -2.2]) { g.beginPath(); g.moveTo(x, -9.5); g.lineTo(x + 0.4, -7.8); g.stroke(); }
-                rrect(g, 0.3, -6, 2.6, 6, 1.2, C.b, C.soft, 0.4);
-                ell(g, 1.7, -0.7, 1.7, 0.8, C.w);
-                headS(g, -1, -14, d.eyes, false);
-                break;
-            }
-            case 'sleep': {
-                const br = Math.sin(a * 2) * 0.25;
-                ell(g, -0.5, -3.1, 9.6, 3.3 + br, C.b, C.soft, 0.45);
-                g.strokeStyle = C.d; g.lineWidth = 1.6; g.lineCap = 'round';
-                g.beginPath(); g.moveTo(-9.5, -3.2); g.quadraticCurveTo(-8.5, -0.9, -4, -1); g.stroke();
-                g.lineWidth = 0.8;
-                for (const x of [-5, -1.5, 2]) { g.beginPath(); g.moveTo(x, -6.2); g.lineTo(x + 0.3, -4.6); g.stroke(); }
-                headS(g, 4, -9, 'closed', false);
-                ell(g, 11, -1, 2.7, 1.1, C.w, C.soft, 0.4);
-                ell(g, 7.2, -0.8, 2.1, 1, C.w, C.soft, 0.4);
-                break;
-            }
-        }
-    }
-
-    function drawYarnS(g, cx, cy, rot) {
-        const r = 3.4;
-        const gr = g.createRadialGradient(cx - 1, cy - 1.2, 0.4, cx, cy, r);
-        gr.addColorStop(0, '#ffc7e0');
-        gr.addColorStop(1, '#ff6fae');
-        g.beginPath(); g.arc(cx, cy, r, 0, TAU);
-        g.fillStyle = gr; g.fill();
-        g.strokeStyle = '#d6477f'; g.lineWidth = 0.35; g.stroke();
-        g.save();
-        g.beginPath(); g.arc(cx, cy, r - 0.05, 0, TAU); g.clip();
-        g.translate(cx, cy);
-        g.rotate(rot);
-        g.strokeStyle = 'rgba(255,255,255,0.55)';
-        g.lineWidth = 0.35;
-        for (let k = 0; k < 2; k++) {
-            if (k) g.rotate(1.2);
-            for (const o of [-1.8, 0, 1.8]) {
-                g.beginPath(); g.moveTo(-r, o); g.quadraticCurveTo(0, o + 1.6, r, o); g.stroke();
-            }
-        }
-        g.restore();
-    }
-
-    const KIB = [[-2.4, -0.2], [-1.2, -0.4], [0, -0.3], [1.2, -0.4], [2.4, -0.2], [-1.8, -1.1], [-0.6, -1.2],
-                 [0.6, -1.1], [1.8, -1.2], [-1.2, -1.9], [0, -2.1], [1.2, -1.9], [-3.3, 0], [3.3, 0]];
-
-    function drawBowlS(g, x, y, food) {
-        const cx = x + 6, top = y + 0.9;
-        g.beginPath();
-        g.moveTo(cx - 6, top);
-        g.bezierCurveTo(cx - 5.6, top + 4.6, cx - 3, y + 5, cx, y + 5);
-        g.bezierCurveTo(cx + 3, y + 5, cx + 5.6, top + 4.6, cx + 6, top);
-        g.closePath();
-        const gr = g.createLinearGradient(0, top, 0, y + 5);
-        gr.addColorStop(0, '#a9ddf7');
-        gr.addColorStop(1, '#6fbbea');
-        g.fillStyle = gr; g.fill();
-        g.strokeStyle = '#4a8fbf'; g.lineWidth = 0.4; g.stroke();
-        ell(g, cx, top, 6, 1.3, '#cfefff', '#4a8fbf', 0.4);
-        ell(g, cx, top, 4.9, 0.8, '#a9ddf7');
-        const n = Math.ceil(food * KIB.length - 1e-6);
-        for (let i = 0; i < n; i++) {
-            ell(g, cx + KIB[i][0], top + KIB[i][1], 0.85, 0.75, (i & 1) ? C.kib : C.kibL);
-        }
-        ell(g, cx, top + 3.1, 1.1, 0.9, C.p);                       // pati izi
-        for (const dx of [-1.1, 0, 1.1]) ell(g, cx + dx, top + 1.9, 0.35, 0.35, C.p);
-    }
-
-    function buildBackgroundS(g) {
-        const gr = g.createLinearGradient(0, GY, 0, H);
-        gr.addColorStop(0, theme.ground);
-        gr.addColorStop(1, theme.ground2);
-        g.fillStyle = gr;
-        g.fillRect(0, GY, W, H - GY);
-        g.fillStyle = theme.line;
-        g.fillRect(0, GY - 0.2, W, 0.6);
-
-        g.fillStyle = theme.dots;
-        const gh = H - GY - 2;
-        for (let x = 0; x < W; x++) {
-            const r = hash(x + 17);
-            if (r % 6 === 0 && gh > 0) {
-                g.beginPath(); g.arc(x + 0.5, GY + 2 + ((r >>> 4) % gh), 0.3, 0, TAU); g.fill();
-            }
-        }
-
-        g.lineCap = 'round';
-        g.strokeStyle = theme.tuft; g.lineWidth = 0.5;
-        for (let x = 2; x < W - 3; x++) {
-            if (hash(x * 3 + 5) % 19 === 0) {
-                for (const k of [-1, 0, 1]) {
-                    g.beginPath();
-                    g.moveTo(x + k * 0.9, GY);
-                    g.quadraticCurveTo(x + k * 1.4, GY - 1.6, x + k * 1.9, GY - 2.6 - (k === 0 ? 0.9 : 0));
-                    g.stroke();
-                }
-            }
-            if (!isDark && hash(x * 5 + 9) % 53 === 0) {            // küçük çiçekler
-                g.beginPath(); g.moveTo(x, GY); g.lineTo(x, GY - 2.4); g.strokeStyle = theme.tuft; g.stroke();
-                ell(g, x, GY - 3, 0.95, 0.95, '#ffb3d6');
-                ell(g, x, GY - 3, 0.35, 0.35, '#ffe08a');
-            }
-        }
-
-        const skyH = GY - 20;
-        stars = [];
-        if (isDark) {
-            for (let i = 0; i < Math.max(8, W / 10); i++) {
-                const x = hash(i * 7 + 1) % W;
-                const y = 2 + (hash(i * 13 + 3) % Math.max(1, skyH));
-                stars.push({ x, y, tw: i % 4 === 0, i });
-                if (i % 4 !== 0) {
-                    g.fillStyle = (i % 3 === 0) ? '#ffffff' : '#bfb3e0';
-                    g.beginPath(); g.arc(x + 0.5, y + 0.5, i % 5 === 0 ? 0.55 : 0.38, 0, TAU); g.fill();
-                }
-            }
-            const mx = W * 0.38, my = 12;
-            g.beginPath(); g.arc(mx, my, 5, 0, TAU); g.fillStyle = '#fff2c2'; g.fill();
-            g.globalCompositeOperation = 'destination-out';
-            g.beginPath(); g.arc(mx + 3, my - 2, 4.4, 0, TAU); g.fill();
-            g.globalCompositeOperation = 'destination-over';
-            const gl = g.createRadialGradient(mx, my, 3, mx, my, 13);
-            gl.addColorStop(0, 'rgba(255,242,194,0.28)');
-            gl.addColorStop(1, 'rgba(255,242,194,0)');
-            g.fillStyle = gl; g.beginPath(); g.arc(mx, my, 13, 0, TAU); g.fill();
-            g.globalCompositeOperation = 'source-over';
-        } else {
-            const sx = W * 0.38, sy = 12;
-            const gl = g.createRadialGradient(sx, sy, 3, sx, sy, 14);
-            gl.addColorStop(0, 'rgba(255,226,140,0.55)');
-            gl.addColorStop(1, 'rgba(255,226,140,0)');
-            g.fillStyle = gl; g.beginPath(); g.arc(sx, sy, 14, 0, TAU); g.fill();
-            const sg = g.createRadialGradient(sx - 1, sy - 1, 0.5, sx, sy, 4.6);
-            sg.addColorStop(0, '#fff3b8');
-            sg.addColorStop(1, '#ffd36b');
-            g.fillStyle = sg; g.beginPath(); g.arc(sx, sy, 4.4, 0, TAU); g.fill();
-        }
-    }
-
-    function drawCloudS(x, y) {
-        ctx.fillStyle = 'rgba(255,255,255,0.88)';
-        ctx.beginPath();
-        ctx.arc(x + 3.5, y + 3.2, 2.8, 0, TAU);
-        ctx.arc(x + 7, y + 2.2, 3.4, 0, TAU);
-        ctx.arc(x + 10.5, y + 3.4, 2.6, 0, TAU);
-        ctx.fill();
-        rrect(ctx, x + 1, y + 3, 11.5, 2.8, 1.4, 'rgba(255,255,255,0.88)');
-    }
-
-    /* ---------------------------------------------------- ortak sarmalayıcılar */
-    function drawYarn(g, x, y, rot) {            // x,y = 7x7 kutunun sol üstü
-        if (pixelMode) drawYarnP(g, x, y, rot);
-        else drawYarnS(g, x + 3.5, y + 3.5, rot);
-    }
-
-    function drawBowl(g, x, y, food) {
-        if (pixelMode) drawBowlP(g, x, y, food);
-        else drawBowlS(g, x, y, food);
-    }
-
-    /* ---------------------------------------------------- araç çubuğu ikonları */
-    function drawIcons() {
-        if (yarnIcon) {
-            const g = yarnIcon.getContext('2d');
-            if (pixelMode) { yarnIcon.width = 7; yarnIcon.height = 7; drawYarnP(g, 0, 0, 0.6); }
-            else { yarnIcon.width = 42; yarnIcon.height = 42; g.setTransform(6, 0, 0, 6, 0, 0); drawYarnS(g, 3.5, 3.5, 0.6); }
-        }
-        if (bowlIcon) {
-            const g = bowlIcon.getContext('2d');
-            if (pixelMode) { bowlIcon.width = 12; bowlIcon.height = 7; drawBowlP(g, 0, 2, 1); }
-            else { bowlIcon.width = 72; bowlIcon.height = 42; g.setTransform(6, 0, 0, 6, 0, 0); drawBowlS(g, 0, 2, 1); }
-        }
-    }
+    // Araç çubuğu ikonları
+    if (yarnIcon) drawYarn(yarnIcon.getContext('2d'), 0, 0, 0.6);
+    if (bowlIcon) drawBowl(bowlIcon.getContext('2d'), 0, 2, 1);
 
     /* ---------------------------------------------------- sahne boyutları */
     let S = 4, W = 0, H = 0, GY = 0;
@@ -659,29 +123,18 @@
     let clouds = [];
     let initialized = false;
 
-    // Canvas'ı moda göre ayarla: piksel = küçük ve keskin, normal = yüksek çözünürlüklü
-    function setupCanvas(c, g) {
-        if (pixelMode) {
-            c.width = W; c.height = H;
-            g.setTransform(1, 0, 0, 1, 0, 0);
-        } else {
-            const K = S * Math.min(window.devicePixelRatio || 1, 2);
-            c.width = Math.round(W * K); c.height = Math.round(H * K);
-            g.setTransform(K, 0, 0, K, 0, 0);
-        }
-    }
-
     function resize() {
         const w = root.clientWidth, h = root.clientHeight;
         if (!w || !h) return;
         S = w < 600 ? 3 : 4;
         W = Math.ceil(w / S);
         H = Math.ceil(h / S);
-        setupCanvas(canvas, ctx);
+        canvas.width = W;
+        canvas.height = H;
         canvas.style.width = (W * S) + 'px';
         canvas.style.height = (H * S) + 'px';
-        GY = H - 7;
-        MIN = 14;
+        GY = H - 7;                 // zemin çizgisinin satırı
+        MIN = 14;                   // kedinin sol/sağ sınırı (kuyruk + bıyık payı)
         MAX = Math.max(MIN, W - 14);
 
         if (!initialized) {
@@ -694,6 +147,7 @@
             ];
         }
 
+        // Pencere değişince her şeyi yeni sınırlara çek
         cat.x = clamp(cat.x, MIN, MAX);
         cat.target = clamp(cat.target, MIN, MAX);
         if (yarn) yarn.x = clamp(yarn.x, 4, W - 4);
@@ -702,10 +156,66 @@
     }
 
     function buildBackground() {
+        bg.width = W;
+        bg.height = H;
         const g = bg.getContext('2d');
-        setupCanvas(bg, g);
         g.clearRect(0, 0, W, H);
-        if (pixelMode) buildBackgroundP(g); else buildBackgroundS(g);
+
+        // zemin
+        g.fillStyle = theme.ground;
+        g.fillRect(0, GY, W, H - GY);
+        g.fillStyle = theme.line;
+        g.fillRect(0, GY, W, 1);
+
+        // zemin dokusu
+        g.fillStyle = theme.dots;
+        const gh = H - GY - 2;
+        for (let x = 0; x < W; x++) {
+            const r = hash(x + 17);
+            if (r % 6 === 0 && gh > 0) g.fillRect(x, GY + 2 + ((r >>> 4) % gh), 1, 1);
+        }
+
+        // çimen tutamları
+        g.fillStyle = theme.tuft;
+        for (let x = 2; x < W - 3; x++) {
+            if (hash(x * 3 + 5) % 19 === 0) {
+                g.fillRect(x, GY - 2, 1, 2);
+                g.fillRect(x + 2, GY - 3, 1, 3);
+                g.fillRect(x + 1, GY - 1, 1, 1);
+            }
+        }
+
+        // gökyüzü süsleri
+        const skyH = GY - 20;
+        stars = [];
+        if (isDark) {
+            for (let i = 0; i < Math.max(8, W / 10); i++) {
+                const x = hash(i * 7 + 1) % W;
+                const y = 2 + (hash(i * 13 + 3) % Math.max(1, skyH));
+                stars.push({ x, y, tw: i % 4 === 0, i });
+                if (i % 4 !== 0) {
+                    g.fillStyle = (i % 3 === 0) ? '#ffffff' : '#bfb3e0';
+                    g.fillRect(x, y, 1, 1);
+                }
+            }
+            // hilal
+            const mx = rnd(W * 0.38), my = 12;
+            g.fillStyle = '#fff2c2';
+            for (let dy = -5; dy <= 5; dy++)
+                for (let dx = -5; dx <= 5; dx++)
+                    if (dx * dx + dy * dy <= 25) g.fillRect(mx + dx, my + dy, 1, 1);
+            for (let dy = -5; dy <= 5; dy++)
+                for (let dx = -5; dx <= 5; dx++)
+                    if ((dx - 3) * (dx - 3) + (dy + 2) * (dy + 2) <= 20) g.clearRect(mx + dx, my + dy, 1, 1);
+        } else {
+            // güneş
+            const sx = rnd(W * 0.38), sy = 12;
+            for (let dy = -4; dy <= 4; dy++)
+                for (let dx = -4; dx <= 4; dx++) {
+                    const d = dx * dx + dy * dy;
+                    if (d <= 16) { g.fillStyle = d > 9 ? '#ffd27a' : '#ffe9a8'; g.fillRect(sx + dx, sy + dy, 1, 1); }
+                }
+        }
     }
 
     /* ---------------------------------------------------- kedi durum makinesi */
@@ -715,8 +225,11 @@
         target: 100, speed: 16,
         phase: '', phaseT: 0,
         blink: 0, nextBlink: 3,
+        // playing
         playTime: 0, playDur: 10, swatT: -1, swatHit: false, cool: 0, moving: false,
+        // eating
         eatDir: 1, eatDur: 5,
+        // sleeping
         zTimer: 0, zCount: 0
     };
 
@@ -743,6 +256,7 @@
         return true;
     }
 
+    // Oyun/yemek/tepki bitince: bekleyen istek varsa ona, yoksa dinlenmeye
     function afterBusy() {
         const wantEat = pending === 'eat' && bowl && bowl.food > 0;
         const wantPlay = pending === 'play' && yarn;
@@ -793,6 +307,7 @@
         }
     };
 
+    // Hedefe doğru yürü; vardıysa true döner
     function moveToward(tx, speed, dt) {
         const d = tx - cat.x;
         cat.animRate = Math.min(12, speed * 0.55);
@@ -821,7 +336,7 @@
                 if (Math.random() < 0.25) setState('walking');
                 else setState('idle');
             } else if (cat.t > 1.5 && Math.random() < dt * 0.12) {
-                setState('idle', { dur: rand(1.5, 3) });
+                setState('idle', { dur: rand(1.5, 3) });   // yürürken rastgele durma
             }
         },
 
@@ -841,12 +356,12 @@
 
         playing(dt) {
             const y = yarn;
-            if (!y) { afterBusy(); return; }
+            if (!y) { afterBusy(); return; }            // yumak alındı
             cat.playTime += dt;
             cat.cool -= dt;
             cat.moving = false;
 
-            if (cat.swatT >= 0) {
+            if (cat.swatT >= 0) {                       // pati atma animasyonu
                 cat.swatT += dt;
                 if (!cat.swatHit && cat.swatT >= 0.2) {
                     cat.swatHit = true;
@@ -859,7 +374,7 @@
             }
 
             const dx = y.x - cat.x, adx = Math.abs(dx);
-            if (adx > REACH) {
+            if (adx > REACH) {                          // yumağın peşinden git
                 const dir = dx > 0 ? 1 : -1;
                 const sp = Math.abs(y.vx) > 15 ? 34 : 24;
                 moveToward(clamp(y.x - dir * STAND, MIN, MAX), sp, dt);
@@ -873,7 +388,7 @@
         },
 
         eating(dt) {
-            if (!bowl) { afterBusy(); return; }
+            if (!bowl) { afterBusy(); return; }         // kap kaldırıldı
             if (cat.phase === 'approach') {
                 if (moveToward(cat.target, 26, dt)) {
                     cat.phase = 'eat';
@@ -951,6 +466,7 @@
                 bowl.vy = bowl.vy < -15 ? -bowl.vy * 0.3 : 0;
             }
         }
+        // boşalınca bir süre kalır, yanıp söner ve kendiliğinden kaybolur
         if (bowl.food <= 0 && !(cat.state === 'eating' && cat.phase === 'eat')) {
             bowl.emptyT += dt;
             if (bowl.emptyT > 5) {
@@ -989,60 +505,165 @@
         }
     }
 
-    /* ---------------------------------------------------- poz tarifi */
-    // Durum makinesinden "ne çizilecek" bilgisini çıkarır; iki çizim modu da bunu kullanır
-    function describe() {
-        const a = cat.anim;
-        const f = Math.floor(a * cat.animRate) & 3;
-        const ph = a * cat.animRate / 4;
-        const D = o => Object.assign({ a, f, ph, eyes: cat.blink > 0 ? 'closed' : 'open', tw: 0, sw: 0, br: 0, mode: 'stand' }, o);
+    /* ---------------------------------------------------- sprite pozları */
+    function head(hx, hy, eyes, mouth) {
+        const sh = [[hx, hy, 8, 7, C.b], [hx, hy - 2, 2, 2, C.b], [hx + 6, hy - 2, 2, 2, C.b]];
+        const dt = [
+            [hx + 1, hy - 1, 1, 1, C.p], [hx + 6, hy - 1, 1, 1, C.p],
+            [hx + 3, hy, 1, 2, C.d], [hx + 5, hy, 1, 2, C.d]
+        ];
+        if (eyes === 'open') {
+            dt.push([hx + 3, hy + 2, 1, 2, C.e], [hx + 6, hy + 2, 1, 2, C.e]);
+        } else if (eyes === 'closed') {
+            dt.push([hx + 3, hy + 3, 2, 1, C.e], [hx + 6, hy + 3, 2, 1, C.e]);
+        } else { // mutlu ^ ^
+            dt.push([hx + 1, hy + 3, 1, 1, C.e], [hx + 2, hy + 2, 1, 1, C.e], [hx + 3, hy + 3, 1, 1, C.e],
+                    [hx + 5, hy + 3, 1, 1, C.e], [hx + 6, hy + 2, 1, 1, C.e], [hx + 7, hy + 3, 1, 1, C.e]);
+        }
+        dt.push([hx + 5, hy + 4, 3, 2, C.w], [hx + 7, hy + 4, 1, 1, C.p]);
+        if (mouth) dt.push([hx + 5, hy + 6, 3, 1, C.e]);
+        dt.push([hx + 8, hy + 4, 2, 1, C.wh], [hx + 8, hy + 6, 2, 1, C.wh]); // bıyıklar
+        return { sh, dt };
+    }
+
+    // bacak: x, faz ofseti, uzak mı
+    const LEGS = [
+        { x: -7, o: 0.5, far: 1 }, { x: -4, o: 0, far: 0 },
+        { x: 1,  o: 0,   far: 1 }, { x: 3,  o: 0.5, far: 0 }
+    ];
+
+    function legs(sh, dt, f, mode, skip) {
+        for (let i = 0; i < 4; i++) {
+            if (i === skip) continue;
+            const L = LEGS[i];
+            let dx = 0, lift = 0;
+            if (mode === 'walk') {
+                const p = ((f / 4) + L.o) % 1;
+                if (p < 0.5) dx = rnd(1 - 4 * p);
+                else { dx = rnd(-1 + 4 * (p - 0.5)); lift = p < 0.7 ? 1 : 2; }
+            } else if (mode === 'air') {
+                lift = 1;
+            }
+            const h = Math.max(1, 3 - lift);
+            sh.push([L.x + dx, -3, 2, h, L.far ? C.d : C.b]);
+            dt.push([L.x + dx, -3 + h - 1, 2, 1, C.w]);
+        }
+    }
+
+    function body(sh, dt) {
+        sh.push([-8, -9, 13, 6, C.b]);
+        dt.push([-7, -4, 11, 1, C.w], [-6, -9, 1, 2, C.d], [-3, -9, 1, 2, C.d], [0, -9, 1, 2, C.d]);
+    }
+
+    function tailUp(sh, dt, tw) {
+        sh.push([-11 + tw, -13, 2, 6, C.b], [-10, -8, 3, 2, C.b]);
+        dt.push([-11 + tw, -13, 2, 2, C.d]);
+    }
+
+    function merge(sh, dt, h) { sh.push(...h.sh); dt.push(...h.dt); }
+
+    function poseWalk(f, mode, eyes, tw) {
+        const sh = [], dt = [];
+        tailUp(sh, dt, tw);
+        legs(sh, dt, f, mode);
+        body(sh, dt);
+        merge(sh, dt, head(3, -13, eyes, false));
+        return { sh, dt };
+    }
+
+    function poseSit(sw, eyes) {
+        const sh = [], dt = [];
+        sh.push([-12, -2, 5, 2, C.b], [-13, -5 - sw, 2, 4 + sw, C.b]);       // kuyruk
+        dt.push([-13, -5 - sw, 2, 1, C.d]);
+        sh.push([-8, -4, 4, 4, C.b], [-6, -8, 9, 8, C.b], [1, -5, 2, 5, C.b]); // kalça, gövde, ön bacak
+        dt.push([-5, -8, 1, 2, C.d], [-2, -8, 1, 2, C.d], [-7, -4, 1, 2, C.d], [1, -1, 2, 1, C.w], [2, -7, 1, 3, C.w]);
+        merge(sh, dt, head(-1, -14, eyes, false));
+        return { sh, dt };
+    }
+
+    function poseSleep(br) {
+        const sh = [], dt = [];
+        sh.push([-11, -4, 3, 4, C.b], [-9, -6, 18, 6, C.b], [-7, -7, 14, 1, C.b]);
+        if (br) sh.push([-5, -8, 10, 1, C.b]);
+        dt.push([-6, -7, 1, 2, C.d], [-2, -7, 1, 2, C.d], [2, -7, 1, 2, C.d]);
+        merge(sh, dt, head(4, -9, 'closed', false));
+        sh.push([8, -2, 5, 2, C.w]);                                          // patiler
+        return { sh, dt };
+    }
+
+    function poseEat(hy, mouth, tw) {
+        const sh = [], dt = [];
+        tailUp(sh, dt, tw);
+        legs(sh, dt, 0, 'stand');
+        body(sh, dt);
+        sh.push([4, -9, 4, 6, C.b]);                                          // boyun
+        merge(sh, dt, head(6, hy, 'happy', mouth));
+        return { sh, dt };
+    }
+
+    function poseSwat(t, tw) {
+        const sh = [], dt = [];
+        tailUp(sh, dt, tw);
+        legs(sh, dt, 0, 'stand', 3);
+        body(sh, dt);
+        if (t >= 0.18 && t < 0.34) {          // vuruş: pati ileri uzanır
+            sh.push([4, -6, 7, 2, C.b]);
+            dt.push([9, -6, 2, 2, C.w]);
+        } else {                               // hazırlık / toparlanma: pati havada
+            sh.push([3, -7, 2, 4, C.b]);
+            dt.push([3, -7, 2, 1, C.w]);
+        }
+        merge(sh, dt, head(3, -12, 'open', false));
+        return { sh, dt };
+    }
+
+    function currentPose() {
+        const eyes = cat.blink > 0 ? 'closed' : 'open';
+        const f = Math.floor(cat.anim * cat.animRate) & 3;
         switch (cat.state) {
             case 'walking':
-                return D({ k: 'walk', mode: 'walk', tw: Math.floor(a * 3) & 1 });
+                return poseWalk(f, 'walk', eyes, Math.floor(cat.anim * 3) & 1);
             case 'idle':
-                return D({ k: 'sit', sw: Math.floor(a * 1.3) & 1 });
+                return poseSit(Math.floor(cat.anim * 1.3) & 1, eyes);
             case 'sleeping':
-                return D({ k: 'sleep', br: Math.sin(a * 2) > 0 ? 1 : 0 });
+                return poseSleep(Math.sin(cat.anim * 2) > 0 ? 1 : 0);
             case 'reacting':
-                return D({ k: 'walk', mode: 'air', f: 0, ph: 0, eyes: 'happy', tw: Math.floor(a * 8) & 1 });
+                return poseWalk(0, 'air', 'happy', Math.floor(cat.anim * 8) & 1);
             case 'playing':
-                if (cat.swatT >= 0) return D({ k: 'swat', t: cat.swatT, tw: Math.floor(a * 10) & 1 });
-                if (cat.moving) return D({ k: 'walk', mode: 'walk', tw: Math.floor(a * 8) & 1 });
-                return D({ k: 'walk', mode: 'stand', f: 0, ph: 0, tw: Math.floor(a * 10) & 1 });
+                if (cat.swatT >= 0) return poseSwat(cat.swatT, Math.floor(cat.anim * 10) & 1);
+                if (cat.moving) return poseWalk(f, 'walk', eyes, Math.floor(cat.anim * 8) & 1);
+                return poseWalk(0, 'stand', eyes, Math.floor(cat.anim * 10) & 1);
             case 'eating':
                 if (cat.phase === 'eat') {
                     const b = Math.floor(cat.phaseT * 5) & 1;
-                    const s = Math.sin(cat.phaseT * Math.PI * 5);
-                    return D({ k: 'eat', hy: -10 + b * 2, hys: -9 + s * 1.1, mouth: pixelMode ? b === 1 : s > 0.2, tw: Math.floor(a * 4) & 1 });
+                    return poseEat(-10 + b * 2, b === 1, Math.floor(cat.anim * 4) & 1);
                 }
-                if (cat.phase === 'done') return D({ k: 'sit', eyes: 'happy', sw: Math.floor(a * 2) & 1 });
-                return D({ k: 'walk', mode: 'walk', tw: Math.floor(a * 8) & 1 });
+                if (cat.phase === 'done') return poseSit(Math.floor(cat.anim * 2) & 1, 'happy');
+                return poseWalk(f, 'walk', eyes, Math.floor(cat.anim * 8) & 1);
         }
-        return D({ k: 'sit' });
+        return poseSit(0, eyes);
     }
 
     /* ---------------------------------------------------- çizim */
     function drawCat() {
-        const d = describe();
-        const hop = cat.state === 'reacting' ? Math.abs(Math.sin(cat.t * 5.4)) * 7 : 0;
-        const lift = pixelMode ? rnd(hop) : hop;
-        const cx = pixelMode ? rnd(cat.x) : cat.x;
+        const p = currentPose();
+        const lift = cat.state === 'reacting' ? rnd(Math.abs(Math.sin(cat.t * 5.4)) * 7) : 0;
+        const cx = rnd(cat.x);
 
         // gölge
         ctx.globalAlpha = theme.shadow;
         ctx.fillStyle = '#000';
         const sw = Math.max(6, 10 - lift);
-        if (pixelMode) {
-            ctx.fillRect(cx - sw, GY + 1, sw * 2, 1);
-        } else {
-            ctx.beginPath(); ctx.ellipse(cx, GY + 1.1, sw * 0.95, 0.9, 0, 0, TAU); ctx.fill();
-        }
+        ctx.fillRect(cx - sw, GY + 1, sw * 2, 1);
         ctx.globalAlpha = 1;
 
         ctx.save();
         ctx.translate(cx, GY - lift);
         ctx.scale(cat.dir, 1);
-        if (pixelMode) drawCatP(ctx, d); else drawCatS(ctx, d);
+        ctx.fillStyle = C.k;
+        for (const [x, y, w, h] of p.sh) ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+        for (const [x, y, w, h, c] of p.sh) { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); }
+        for (const [x, y, w, h, c] of p.dt) { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); }
         ctx.restore();
     }
 
@@ -1050,81 +671,55 @@
         for (const p of parts) {
             const k = p.t / p.life;
             ctx.globalAlpha = k > 0.65 ? 1 - (k - 0.65) / 0.35 : 1;
-            const x = pixelMode ? rnd(p.x) : p.x, y = pixelMode ? rnd(p.y) : p.y;
+            const x = rnd(p.x), y = rnd(p.y);
             if (p.k === 'heart') {
-                if (pixelMode) {
-                    drawRows(ctx, HEART, x - 3, y, { k: C.k, p: C.heart });
-                } else {
-                    ctx.beginPath();
-                    ctx.moveTo(x, y + 5.4);
-                    ctx.bezierCurveTo(x - 5, y + 2, x - 3, y - 1, x, y + 1.2);
-                    ctx.bezierCurveTo(x + 3, y - 1, x + 5, y + 2, x, y + 5.4);
-                    ctx.fillStyle = C.heart; ctx.fill();
-                    ctx.strokeStyle = '#d6477f'; ctx.lineWidth = 0.3; ctx.stroke();
-                }
+                drawRows(ctx, HEART, x - 3, y, { k: C.k, p: C.heart });
             } else if (p.k === 'z') {
-                if (pixelMode) {
-                    ctx.fillStyle = theme.z;
-                    for (let r = 0; r < 5; r++)
-                        for (let c = 0; c < 3; c++)
-                            if (ZGLYPH[r][c] === '#') ctx.fillRect(x + c * p.s, y + r * p.s, p.s, p.s);
-                } else {
-                    const s = p.s * 1.1;
-                    ctx.beginPath();
-                    ctx.moveTo(x, y); ctx.lineTo(x + 3 * s, y); ctx.lineTo(x, y + 4.4 * s); ctx.lineTo(x + 3 * s, y + 4.4 * s);
-                    ctx.strokeStyle = theme.z; ctx.lineWidth = 0.7 * p.s; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
-                }
+                ctx.fillStyle = theme.z;
+                for (let r = 0; r < 5; r++)
+                    for (let c = 0; c < 3; c++)
+                        if (ZGLYPH[r][c] === '#') ctx.fillRect(x + c * p.s, y + r * p.s, p.s, p.s);
             } else if (p.k === 'crumb') {
-                if (pixelMode) { ctx.fillStyle = C.kib; ctx.fillRect(x, y, 1, 1); }
-                else { ctx.beginPath(); ctx.arc(x, y, 0.5, 0, TAU); ctx.fillStyle = C.kib; ctx.fill(); }
+                ctx.fillStyle = C.kib;
+                ctx.fillRect(x, y, 1, 1);
             } else if (p.k === 'puff') {
                 ctx.fillStyle = isDark ? '#cfc4ee' : '#ffffff';
-                if (pixelMode) { const s = 1 + Math.floor(k * 2); ctx.fillRect(x, y, s, s); }
-                else { ctx.beginPath(); ctx.arc(x, y, 0.7 + k * 1.6, 0, TAU); ctx.fill(); }
+                const s = 1 + Math.floor(k * 2);
+                ctx.fillRect(x, y, s, s);
             } else if (p.k === 'bang') {
-                if (pixelMode) {
-                    ctx.fillStyle = C.bang;
-                    ctx.fillRect(x, y, 2, 4);
-                    ctx.fillRect(x, y + 5, 2, 2);
-                } else {
-                    rrect(ctx, x, y, 1.4, 4, 0.7, C.bang);
-                    ell(ctx, x + 0.7, y + 5.5, 0.75, 0.75, C.bang);
-                }
+                ctx.fillStyle = C.bang;
+                ctx.fillRect(x, y, 2, 4);
+                ctx.fillRect(x, y + 5, 2, 2);
             }
         }
         ctx.globalAlpha = 1;
     }
 
+    function drawCloud(x, y) {
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.fillRect(x + 3, y, 3, 1);
+        ctx.fillRect(x + 2, y + 1, 6, 1);
+        ctx.fillRect(x, y + 2, 11, 1);
+        ctx.fillRect(x + 1, y + 3, 9, 1);
+    }
+
     function render(time) {
         ctx.clearRect(0, 0, W, H);
-        ctx.drawImage(bg, 0, 0, W, H);
+        ctx.drawImage(bg, 0, 0);
 
         if (isDark) {
             for (const s of stars) {
                 if (!s.tw) continue;
                 ctx.globalAlpha = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(time * 2 + s.i));
                 ctx.fillStyle = '#fff';
-                if (pixelMode) ctx.fillRect(s.x, s.y, 1, 1);
-                else { ctx.beginPath(); ctx.arc(s.x + 0.5, s.y + 0.5, 0.5, 0, TAU); ctx.fill(); }
+                ctx.fillRect(s.x, s.y, 1, 1);
             }
             ctx.globalAlpha = 1;
         } else {
-            for (const c of clouds) {
-                if (pixelMode) drawCloudP(rnd(c.x), c.y); else drawCloudS(c.x, c.y);
-            }
+            for (const c of clouds) drawCloud(rnd(c.x), c.y);
         }
 
-        if (yarn) {
-            const yx = pixelMode ? rnd(yarn.x) - 3 : yarn.x - 3.5;
-            const yy = pixelMode ? rnd(GY - yarn.h - 7) : GY - yarn.h - 7;
-            if (!pixelMode && yarn.h < 1) {               // yerdeki iplik ucu
-                ctx.beginPath();
-                ctx.moveTo(yarn.x - 3.2, GY - 0.8);
-                ctx.quadraticCurveTo(yarn.x - 5, GY - 2.6, yarn.x - 7, GY - 0.6);
-                ctx.strokeStyle = '#ff6fae'; ctx.lineWidth = 0.4; ctx.lineCap = 'round'; ctx.stroke();
-            }
-            drawYarn(ctx, yx, yy, yarn.rot);
-        }
+        if (yarn) drawYarn(ctx, rnd(yarn.x) - 3, rnd(GY - yarn.h - 7), yarn.rot);
 
         drawCat();
 
@@ -1132,9 +727,7 @@
             let a = 1;
             if (bowl.food <= 0 && bowl.emptyT > 4) a = (Math.floor(bowl.emptyT * 8) & 1) ? 0.3 : 1;
             ctx.globalAlpha = a;
-            const bx = pixelMode ? rnd(bowl.x) - 6 : bowl.x - 6;
-            const by = pixelMode ? rnd(GY - 5 - bowl.h) : GY - 5 - bowl.h;
-            drawBowl(ctx, bx, by, bowl.food);
+            drawBowl(ctx, rnd(bowl.x) - 6, rnd(GY - 5 - bowl.h), bowl.food);
             ctx.globalAlpha = 1;
         }
 
@@ -1159,7 +752,7 @@
 
         for (const c of clouds) {
             c.x += c.v * dt;
-            if (c.x > W + 14) c.x = -14;
+            if (c.x > W + 12) c.x = -14;
         }
     }
 
@@ -1177,7 +770,7 @@
     /* ---------------------------------------------------- etkileşim */
     function toLogical(e) {
         const r = canvas.getBoundingClientRect();
-        const k = W / r.width;
+        const k = canvas.width / r.width;
         return { x: (e.clientX - r.left) * k, y: (e.clientY - r.top) * k };
     }
 
@@ -1187,26 +780,20 @@
 
     function poke() {
         spawnHeart(cat.x + cat.dir * 2, GY - 22);
-        if (cat.state === 'playing' || cat.state === 'eating') return;
+        if (cat.state === 'playing' || cat.state === 'eating') return;   // meşgulken sadece kalp
         setState('reacting', { startle: cat.state === 'sleeping' });
     }
 
+    // --- yumak sürükleme (araç çubuğundan veya sahnedeki yumaktan)
     let drag = null;
 
     function beginDrag(e, fromSource) {
         const g = document.createElement('canvas');
-        const gc = g.getContext('2d');
+        g.width = 7; g.height = 7;
         g.className = 'wp-ghost';
-        if (pixelMode) {
-            g.width = 7; g.height = 7;
-            drawYarnP(gc, 0, 0, 0.6);
-        } else {
-            g.width = 56; g.height = 56;
-            gc.setTransform(8, 0, 0, 8, 0, 0);
-            drawYarnS(gc, 3.5, 3.5, 0.6);
-        }
         g.style.width = (7 * S) + 'px';
         g.style.height = (7 * S) + 'px';
+        drawYarn(g.getContext('2d'), 0, 0, 0.6);
         document.body.appendChild(g);
         drag = { id: e.pointerId, g, sx: e.clientX, sy: e.clientY, moved: false, fromSource };
         moveGhost(e);
@@ -1246,7 +833,7 @@
             const p = toLogical(e);
             dropYarn(p.x, p.y);
         } else if (wasClick) {
-            dropYarn(rand(24, Math.max(25, W - 24)), 2);
+            dropYarn(rand(24, Math.max(25, W - 24)), 2);   // tıklama: yumak yukarıdan düşer
         }
         // şeridin dışında bırakılırsa yumak kaybolur (araç çubuğuna geri döner)
     }
@@ -1260,7 +847,7 @@
         const p = toLogical(e);
         if (hitYarn(p)) {
             e.preventDefault();
-            yarn = null;
+            yarn = null;                       // yumak ele alındı
             beginDrag(e, false);
         } else if (hitBowl(p)) {
             if (cat.state !== 'eating') removeBowl();
@@ -1290,98 +877,14 @@
 
     feedBtn.addEventListener('click', feed);
 
-    /* ==========================================================
-       PİKSEL MODU – sayfanın geri kalanı
-       ========================================================== */
-    // Proje kartlarındaki görseller ve emojiler düşük çözünürlüğe indirilip pikselleştirilir
-    function pixelateCards(on) {
-        document.querySelectorAll('.card-image img').forEach(img => {
-            const next = img.nextElementSibling;
-            const cv = next && next.classList && next.classList.contains('wp-px') ? next : null;
-            if (!on) {
-                if (cv) cv.remove();
-                img.classList.remove('wp-hidden');
-                return;
-            }
-            if (cv) return;
-            const make = () => {
-                if (!pixelMode || (img.nextElementSibling && img.nextElementSibling.classList.contains('wp-px'))) return;
-                const N = 40;
-                const c = document.createElement('canvas');
-                c.className = 'wp-px';
-                c.width = N; c.height = N;
-                c.setAttribute('role', 'img');
-                c.setAttribute('aria-label', img.alt || '');
-                const g = c.getContext('2d');
-                g.imageSmoothingQuality = 'high';
-                const sw = img.naturalWidth, sh = img.naturalHeight, m = Math.min(sw, sh);
-                g.drawImage(img, (sw - m) / 2, (sh - m) / 2, m, m, 0, 0, N, N);
-                try {                                   // renk sayısını azalt (posterize)
-                    const id = g.getImageData(0, 0, N, N), d = id.data, st = 255 / 5;
-                    for (let i = 0; i < d.length; i += 4) {
-                        d[i] = Math.round(d[i] / st) * st;
-                        d[i + 1] = Math.round(d[i + 1] / st) * st;
-                        d[i + 2] = Math.round(d[i + 2] / st) * st;
-                    }
-                    g.putImageData(id, 0, 0);
-                } catch (_) { /* dosya:// altında okunamaz, sorun değil */ }
-                img.classList.add('wp-hidden');
-                img.after(c);
-            };
-            if (img.complete && img.naturalWidth) make();
-            else img.addEventListener('load', make, { once: true });
-        });
-
-        document.querySelectorAll('.card-emoji').forEach(el => {
-            if (on) {
-                if (el.dataset.wpEmoji) return;
-                const t = el.textContent.trim();
-                el.dataset.wpEmoji = t;
-                const c = document.createElement('canvas');
-                c.className = 'wp-px-emoji';
-                c.width = 20; c.height = 20;
-                const g = c.getContext('2d');
-                g.font = '16px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif';
-                g.textAlign = 'center';
-                g.textBaseline = 'middle';
-                g.fillText(t, 10, 11);
-                el.textContent = '';
-                el.appendChild(c);
-            } else if (el.dataset.wpEmoji) {
-                el.textContent = el.dataset.wpEmoji;
-                delete el.dataset.wpEmoji;
-            }
-        });
-    }
-
-    function applyMode() {
-        if (pixelBtn) {
-            pixelBtn.setAttribute('aria-pressed', pixelMode ? 'true' : 'false');
-            if (pixelTxt) pixelTxt.textContent = pixelMode ? 'Normal' : 'Piksel';
-        }
-        drawIcons();
-        resize();
-        pixelateCards(pixelMode);
-    }
-
-    if (pixelBtn) {
-        pixelBtn.addEventListener('click', () => document.body.classList.toggle('pixel-mode'));
-    }
-
     /* ---------------------------------------------------- başlatma */
     readTheme();
-    drawIcons();
-    new MutationObserver(() => {
-        readTheme();
-        const pm = document.body.classList.contains('pixel-mode');
-        if (pm !== pixelMode) { pixelMode = pm; applyMode(); }
-        else if (W) buildBackground();
-    }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    new MutationObserver(() => { readTheme(); if (W) buildBackground(); })
+        .observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
     if ('ResizeObserver' in window) new ResizeObserver(resize).observe(root);
     else window.addEventListener('resize', resize);
     resize();
-    if (pixelMode) applyMode();
 
     if ('IntersectionObserver' in window) {
         new IntersectionObserver(en => { inView = en[0].isIntersecting; }).observe(root);
@@ -1394,7 +897,6 @@
     window.WhiskerPet = {
         get state() { return cat.state; },
         get x() { return cat.x; },
-        get pixel() { return pixelMode; },
         bounds: () => [MIN, MAX]
     };
 })();
