@@ -1,7 +1,7 @@
 /* ==========================================================
-   WhiskerPet – WhiskerHub kedi şeridi + Piksel modu
-   Normal mod: pürüzsüz tasarım (mevcut WhiskerHub görünümü)
-   Piksel modu: body.pixel-mode  (header'daki "Piksel" butonu)
+   WhiskerPet – WhiskerHub piksel kedi şeridi
+   Mevcut tasarımı bozmaz: şerit sayfanın en üstüne "absolute"
+   yerleşir, içerik sadece üstten boşluk kazanır.
    ========================================================== */
 
 :root {
@@ -15,28 +15,6 @@
 /* Şeridin altında kalmaması için ana içeriği aşağı it */
 body.has-whiskerpet {
     padding-top: calc(var(--wp-height) + 20px);
-}
-
-/* -------------------- HEADER BUTONLARI -------------------- */
-.header-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.px-icon {
-    width: 12px;
-    height: 12px;
-    background: conic-gradient(#8e6fe0 25%, #FFD1E8 0 50%, #CFEFFF 0 75%, #D8C7FF 0);
-    border-radius: 3px;
-    display: inline-block;
-}
-
-body.dark-mode .px-icon { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15); }
-
-@media (max-width: 450px) {
-    .header-actions { align-self: flex-end; }
-    .header-actions .theme-toggle { font-size: 0.75rem; padding: 6px 14px; }
 }
 
 /* -------------------- ŞERİT -------------------- */
@@ -63,24 +41,26 @@ body.dark-mode .whiskerpet {
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Canvas: normal modda pürüzsüz, piksel modunda keskin büyütme */
+/* Piksel canvas: mantıksal çözünürlük küçük, CSS ile tam sayı katıyla büyütülür */
 #wpCanvas {
     position: absolute;
     left: 0;
     top: 0;
     display: block;
-    image-rendering: auto;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
     touch-action: none;
 }
 
 /* -------------------- BAŞLIK -------------------- */
 .wp-title {
     position: absolute;
-    top: 11px;
+    top: 10px;
     left: 14px;
-    font-size: 0.7rem;
+    font-family: 'Courier New', ui-monospace, monospace;
+    font-size: 0.72rem;
     font-weight: 700;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     opacity: 0.55;
     pointer-events: none;
@@ -125,6 +105,8 @@ body.dark-mode .wp-title  { color: #c0b0d8; }
 }
 
 .wp-btn canvas {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
     height: 18px;
     width: auto;
     display: block;
@@ -144,6 +126,7 @@ body.dark-mode .wp-btn {
 }
 body.dark-mode .wp-btn:hover { border-color: rgba(207, 239, 255, 0.25); background: rgba(255, 255, 255, 0.09); }
 
+/* Sürüklenebilir yumak düğmesi */
 .wp-yarn {
     cursor: grab;
     touch-action: none;
@@ -155,267 +138,16 @@ body.dark-mode .wp-btn:hover { border-color: rgba(207, 239, 255, 0.25); backgrou
     position: fixed;
     z-index: 9999;
     pointer-events: none;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
     transform: translate(-50%, -50%) rotate(-12deg);
     filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.25));
 }
 
+/* -------------------- MOBİL -------------------- */
 @media (max-width: 450px) {
-    .wp-title   { top: 12px; left: 10px; font-size: 0.6rem; }
+    .wp-title   { top: 12px; left: 10px; font-size: 0.62rem; }
     .wp-toolbar { top: 6px; right: 8px; gap: 6px; }
     .wp-btn     { height: 28px; padding: 0 10px; font-size: 0.7rem; gap: 5px; }
     .wp-btn canvas { height: 15px; }
-}
-
-/* ==========================================================
-   PİKSEL MODU
-   "html body.pixel-mode" ön eki, sayfanın kendi stillerinden
-   sonra yüklenmese bile bunların ezilmesini sağlar.
-   ========================================================== */
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
-
-html body.pixel-mode.light-mode {
-    --px-border: #3b2f4f;
-    --px-shadow: #3b2f4f;
-    --px-paper: #fffaff;
-    --px-ink: #2a2140;
-    --px-muted: #5a4a7a;
-    --px-accent: #8e6fe0;
-    --px-hover: #FFD1E8;
-    background-color: #f5f0fa;
-    background-image:
-        linear-gradient(45deg, rgba(120, 80, 180, 0.07) 25%, transparent 25%, transparent 75%, rgba(120, 80, 180, 0.07) 75%),
-        linear-gradient(45deg, rgba(120, 80, 180, 0.07) 25%, transparent 25%, transparent 75%, rgba(120, 80, 180, 0.07) 75%);
-    background-size: 16px 16px;
-    background-position: 0 0, 8px 8px;
-}
-
-html body.pixel-mode.dark-mode {
-    --px-border: #6b5a9a;
-    --px-shadow: #000000;
-    --px-paper: #0c0c16;
-    --px-ink: #eae2fb;
-    --px-muted: #a898c8;
-    --px-accent: #CFEFFF;
-    --px-hover: #3a2f66;
-    background-color: #0a0a0f;
-    background-image:
-        linear-gradient(45deg, rgba(255, 255, 255, 0.025) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.025) 75%),
-        linear-gradient(45deg, rgba(255, 255, 255, 0.025) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.025) 75%);
-    background-size: 16px 16px;
-    background-position: 0 0, 8px 8px;
-}
-
-html body.pixel-mode,
-html body.pixel-mode button {
-    font-family: 'VT323', 'Courier New', monospace;
-}
-
-/* ---- ana kart ---- */
-html body.pixel-mode .hub-container {
-    border-radius: 0;
-    border: 4px solid var(--px-border);
-    box-shadow: 8px 8px 0 var(--px-shadow);
-    background: var(--px-paper);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    transition: none;
-}
-
-/* ---- başlık ---- */
-html body.pixel-mode .hub-header h1 {
-    font-family: 'Press Start 2P', 'VT323', monospace;
-    font-size: 1.5rem;
-    line-height: 1.4;
-    letter-spacing: 0;
-    background: none;
-    -webkit-background-clip: border-box;
-    background-clip: border-box;
-    -webkit-text-fill-color: var(--px-accent);
-    color: var(--px-accent);
-    text-shadow: 3px 3px 0 var(--px-border);
-    animation: none;
-}
-
-html body.pixel-mode .hub-header .sub {
-    border-radius: 0;
-    border: 2px solid var(--px-border);
-    background: transparent;
-    color: var(--px-muted);
-    font-size: 1.3rem;
-    opacity: 1;
-}
-
-/* ---- tema / piksel butonları ---- */
-html body.pixel-mode .theme-toggle {
-    border-radius: 0;
-    border: 3px solid var(--px-border);
-    box-shadow: 3px 3px 0 var(--px-shadow);
-    background: var(--px-paper);
-    color: var(--px-ink);
-    font-size: 1.3rem;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    transition: transform 0.1s steps(2), box-shadow 0.1s steps(2);
-}
-
-html body.pixel-mode .theme-toggle:hover {
-    transform: translate(-1px, -1px);
-    box-shadow: 4px 4px 0 var(--px-shadow);
-    border-color: var(--px-border);
-}
-
-html body.pixel-mode .theme-toggle:active {
-    transform: translate(2px, 2px);
-    box-shadow: 1px 1px 0 var(--px-shadow);
-}
-
-html body.pixel-mode .px-icon { border-radius: 0; }
-
-/* ---- proje kartları ---- */
-html body.pixel-mode .project-card {
-    border-radius: 0;
-    border: 3px solid var(--px-border);
-    box-shadow: 4px 4px 0 var(--px-shadow);
-    background: var(--px-paper);
-    transition: transform 0.1s steps(2), box-shadow 0.1s steps(2), background 0.1s steps(2);
-}
-
-html body.pixel-mode .project-card::before { display: none; }
-
-html body.pixel-mode .project-card:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0 var(--px-accent);
-    border-color: var(--px-border);
-    background: var(--px-paper);
-}
-
-html body.pixel-mode .project-card:hover .card-image { transform: none; }
-
-html body.pixel-mode .card-image {
-    border-radius: 0;
-    border: 3px solid var(--px-border);
-    background: var(--px-hover);
-    transition: none;
-}
-
-html body.pixel-mode .card-image img.wp-hidden { display: none; }
-
-html body.pixel-mode .card-image canvas.wp-px {
-    width: 100%;
-    height: 100%;
-    display: block;
-    image-rendering: crisp-edges;
-    image-rendering: pixelated;
-}
-
-html body.pixel-mode .card-emoji canvas.wp-px-emoji {
-    width: 1.9rem;
-    height: 1.9rem;
-    display: block;
-    margin: 0 auto;
-    image-rendering: crisp-edges;
-    image-rendering: pixelated;
-}
-
-html body.pixel-mode .card-title {
-    color: var(--px-ink);
-    font-size: 1.7rem;
-    letter-spacing: 0;
-    line-height: 1;
-}
-
-html body.pixel-mode .card-desc {
-    color: var(--px-muted);
-    font-size: 1.15rem;
-    line-height: 1.1;
-    opacity: 1;
-}
-
-/* ---- footer ---- */
-html body.pixel-mode .hub-footer {
-    border-top: 3px dashed var(--px-border);
-    color: var(--px-muted);
-    font-size: 1.2rem;
-}
-
-html body.pixel-mode .hub-footer span {
-    border-radius: 0;
-    border: 2px solid var(--px-border);
-    background: transparent;
-    opacity: 1;
-}
-
-html body.pixel-mode .hub-footer .color-dots { border: none; }
-html body.pixel-mode .color-dot { border-radius: 0; width: 12px; height: 12px; border: 2px solid var(--px-border); }
-
-/* ---- WhiskerPet şeridi ---- */
-html body.pixel-mode #wpCanvas {
-    image-rendering: crisp-edges;
-    image-rendering: pixelated;
-}
-
-html body.pixel-mode .wp-btn canvas,
-html body.pixel-mode .wp-ghost {
-    image-rendering: crisp-edges;
-    image-rendering: pixelated;
-}
-
-html body.pixel-mode.light-mode .whiskerpet {
-    background: linear-gradient(180deg, #CFEFFF 0 35%, #d4dcfa 35% 55%, #dbd0fb 55% 75%, #e4d8fd 75% 100%);
-    border-bottom: 4px solid var(--px-border);
-}
-
-html body.pixel-mode.dark-mode .whiskerpet {
-    background: linear-gradient(180deg, #080810 0 35%, #0e0b22 35% 55%, #140f2c 55% 75%, #1b1438 75% 100%);
-    border-bottom: 4px solid var(--px-border);
-}
-
-html body.pixel-mode .wp-title {
-    font-size: 1.15rem;
-    letter-spacing: 0.1em;
-    opacity: 0.8;
-    color: var(--px-ink);
-}
-
-html body.pixel-mode .wp-btn {
-    border-radius: 0;
-    border: 3px solid var(--px-border);
-    box-shadow: 3px 3px 0 var(--px-shadow);
-    background: var(--px-paper);
-    color: var(--px-ink);
-    font-size: 1.2rem;
-    font-weight: 400;
-    height: 32px;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    transition: transform 0.1s steps(2), box-shadow 0.1s steps(2);
-}
-
-html body.pixel-mode .wp-btn:hover {
-    transform: translate(-1px, -1px);
-    box-shadow: 4px 4px 0 var(--px-shadow);
-    border-color: var(--px-border);
-    background: var(--px-paper);
-}
-
-html body.pixel-mode .wp-btn:active {
-    transform: translate(2px, 2px);
-    box-shadow: 1px 1px 0 var(--px-shadow);
-}
-
-/* ---- mobil ---- */
-@media (max-width: 700px) {
-    html body.pixel-mode .hub-header h1 { font-size: 1.1rem; }
-    html body.pixel-mode .hub-container { box-shadow: 5px 5px 0 var(--px-shadow); }
-}
-
-@media (max-width: 450px) {
-    html body.pixel-mode .hub-header h1 { font-size: 0.85rem; }
-    html body.pixel-mode .card-title { font-size: 1.35rem; }
-    html body.pixel-mode .card-desc { font-size: 1rem; }
-    html body.pixel-mode .hub-header .sub { font-size: 1.1rem; }
-    html body.pixel-mode .theme-toggle { font-size: 1.05rem; padding: 6px 12px; }
-    html body.pixel-mode .wp-title { font-size: 1rem; top: 10px; }
-    html body.pixel-mode .wp-btn { height: 30px; font-size: 1.05rem; padding: 0 9px; }
-    html body.pixel-mode .hub-footer { font-size: 1rem; }
 }
